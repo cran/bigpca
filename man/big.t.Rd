@@ -1,0 +1,70 @@
+\name{big.t}
+\alias{big.t}
+\title{Transpose function for big.matrix objects}
+\usage{
+  big.t(bigMat, dir = NULL, name = "t.bigMat",
+    R.descr = NULL, max.gb = NA, verbose = F, tracker = NA,
+    file.ok = T)
+}
+\arguments{
+  \item{bigMat}{default, a big.matrix(), although if
+  'file.ok' is set TRUE, then this can be a big.matrix
+  descriptor, or a file location}
+
+  \item{dir}{the directory for the matrix backing file
+  (preferably for both the original and the proposed
+  transposed matrix). If this is left NULL and bigMat
+  contains a path, this path (via dirname(bigMat)) will be
+  used; if it doesn't contain a path the current working
+  directory will be used}
+
+  \item{name}{the basename of the new transposed matrix}
+
+  \item{R.descr}{the name of a binary file that will store
+  the big.matrix.descriptor for the transposed matrix. If
+  "" then the descriptor won't be saved. If NULL, then it
+  will be <name>.RData}
+
+  \item{max.gb}{the maximum number of GB of data to process
+  before flushing the big.matrix}
+
+  \item{verbose}{whether to print messages about each stage
+  of the process}
+
+  \item{tracker}{whether to use a progress bar. NA means it
+  will only be used if the matrix in question is larger
+  than 1GB.}
+
+  \item{file.ok}{whether to accept big.matrix.descriptors
+  or filenames as input for 'bigMat'; if T, then anything
+  that works with get.big.matrix(bigMat,dir) is acceptable}
+}
+\value{
+  A big.matrix that is the transpose (rows and columns
+  switched) of the original matrix
+}
+\description{
+  At the time of writing, there is no transpose method for
+  big.matrix() This function returns a new filebacked
+  big.matrix which is the transpose of the input
+  big.matrix. max.gb allows periodic manual flushing of the
+  memory to be conducted in case the built-in memory
+  management of R/bigmemory is not working as desired. This
+  method is a non-native (not using the raw C objects from
+  the package but merely standard R accessors and
+  operations) algorithm to transpose a big matrix
+  efficiently for memory usage and speed. A blank matrix is
+  created on disk and the data is block-wise transposed and
+  buffered into the new matrix.
+}
+\examples{
+bM <- filebacked.big.matrix(200, 500,
+       dimnames = list(paste("r",1:200,sep=""), paste("c",1:500,sep="")),
+       backingfile = "test.bck",  backingpath = getwd(), descriptorfile = "test.dsc")
+bM[1:200,] <- replicate(500,rnorm(200))
+prv.big.matrix(bM)
+tbM <- big.t(bM,verbose=TRUE)
+prv.big.matrix(tbM)
+unlink(c("t.bigMat.RData","t.bigMat.bck","t.bigMat.dsc","test.bck","test.dsc"))
+}
+
