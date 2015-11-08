@@ -1,12 +1,18 @@
 ###NAMESPACE ADDITIONS###
 # Depends: R (>= 3.0), grDevices, graphics, stats, utils, reader (>= 1.0.1), NCmisc (>= 1.1), bigmemory (>= 4.0.0), biganalytics
-# Imports: parallel, methods, bigmemory.sri, BH, irlba
+# Imports: parallel, methods, bigmemory.sri, irlba
 # Suggests:
 # importFrom(parallel, mclapply)
 # importFrom(irlba, irlba)
-# import(methods, bigmemory.sri, BH, grDevices, graphics, stats, utils, reader, NCmisc, bigmemory, biganalytics)
+# import(methods, bigmemory.sri, grDevices, graphics, stats, utils, reader, NCmisc, bigmemory, biganalytics)
 ###END NAMESPACE###
 
+
+.onLoad <- function(libname, pkgname) {
+  options(deleteFileBacked=TRUE) # generally will be nice to set this to TRUE to avoid be prevented from overwriting files
+}
+
+# may want to use updated irlba2() function in order to allow bigger Matrices to be pca-ed #
 
 #setMethod("print", signature=signature(x="big.matrix"), function(x,...) prv.big.matrix(x,...))
 
@@ -55,8 +61,10 @@ manage.test.files <- function(start=TRUE,keepers=NULL) {
 #' @param ccap character, caption to display for the columns
 #' @param ... additional arguments to prv.large (from NCmisc) which displays the end result
 #' @return Prints to console a compact representation of the bigMat matrix, 
-#'  with the first few rows and columns, and the last row and column
-#' @seealso get.big.matrix()
+#'  with the first few rows and columns, and the last row and column. Note that sometimes
+#'  the initial printing of a big.matrix can take a little while. But subsequently the printout
+#'  should be almost instantaneous.
+#' @seealso \code{\link{get.big.matrix}}
 #' @export
 #' @examples 
 #' bM <- filebacked.big.matrix(20, 50,
@@ -129,7 +137,7 @@ prv.big.matrix <- function(bigMat,dir="",rows=3,cols=2,name=NULL,dat=TRUE,
 #' @param elbow the number of components which you think explain the important portion
 #'  of the variance of the dataset, so further components are assumed to be reflecting
 #'  noise or very subtle effects, e.g, often the number of components used is decided
-#'  by the 'elbow' in  a scree plot (see 'pca.scree.plots')
+#'  by the 'elbow' in  a scree plot (see 'pca.scree.plot')
 #' @param linear whether to use a linear model to model the 'noise' eigenvalues; alternative
 #'  is a 1/x model with no intercept.
 #' @param estimated logical, whether to return the estimated variance percentages for unobserved eigenvalues
@@ -138,7 +146,7 @@ prv.big.matrix <- function(bigMat,dir="",rows=3,cols=2,name=NULL,dat=TRUE,
 #' @param print.est whether to output the estimate result to the console
 #' @param print.coef whether to output the estimate regression coefficients to the console
 #' @param add.fit.line logical, if there is an existing scree plot, adds the fit line from this estimate
-#'  to the plot ('pca.scree.plots' can use this option using the parameter of the same name)
+#'  to the plot ('pca.scree.plot' can use this option using the parameter of the same name)
 #' @param col colour for the fit line
 #' @param ignore.warn ignore warnings when an estimate is not required (i.e, all eigenvalues present)
 #' @return By default returns a list where the first element ''variance.pcs' are the known variance
@@ -146,7 +154,7 @@ prv.big.matrix <- function(bigMat,dir="",rows=3,cols=2,name=NULL,dat=TRUE,
 #'  'tail.auc' is the area under the curve for the estimated eigenvalues. If estimate
 #'  =TRUE then a third element is return with separate variance percentages for
 #'  each of the estimated eigenvalues.
-#' @seealso pca.scree.plots
+#' @seealso \code{\link{pca.scree.plot}}
 #' @export
 #' @examples
 #' nsamp <- 100; nvar <- 300; subset.size <- 25; elbow <- 6
@@ -251,7 +259,7 @@ estimate.eig.vpcs <- function(eigenv=NULL,min.dim=length(eigenv),M=NULL,elbow=NA
 
 #' Make scree plots for any PCA
 #'
-#' Make a scree plot using eigenvalues from princomp(), prcomp(), svd(), irlba(), big.pca(), etc.
+#' Make a scree plot using eigenvalues from princomp(), prcomp(), svd(), irlba(), big.PCA(), etc.
 #' Note that most these return values which need to be squared to be proper eigenvalues.
 #' There is also an option to use the estimate.eig.vpcs() function to estimate any missing
 #' eigenvalues (e.g, if using a function like irlba' to calculate PCA) and then to visualise
@@ -261,7 +269,7 @@ estimate.eig.vpcs <- function(eigenv=NULL,min.dim=length(eigenv),M=NULL,elbow=NA
 #' @param elbow the number of components which you think explain the important chunk
 #'  of the variance of the dataset, so further components are modelled as reflecting
 #'  noise or very subtle effects, e.g, often the number of components used is decided
-#'  by the 'elbow' in  a scree plot (see 'pca.scree.plots')
+#'  by the 'elbow' in  a scree plot (see 'pca.scree.plot')
 #' @param min.dim the size of the smaller dimension of the matrix submitted to singular
 #'  value decomposition, e.g, number of samples - i.e, the max number of possible eigenvalues,
 #'  alternatively use 'M'.
@@ -271,13 +279,13 @@ estimate.eig.vpcs <- function(eigenv=NULL,min.dim=length(eigenv),M=NULL,elbow=NA
 #'  is a 1/x model with no intercept.
 #' @param printvar logical, whether to print summary of variance calculations
 #' @param add.fit.line logical, if there is an existing scree plot, adds the fit line from this estimate
-#'  to the plot ('pca.scree.plots' can use this option using the parameter of the same name)
+#'  to the plot ('pca.scree.plot' can use this option using the parameter of the same name)
 #' @param n.xax number of components to include on the x-axis
 #' @param verbose logical, whether to display additional output
 #' @param return.data logical, whether to return the percentages of variance explained for each component, or nothing (just plot)
 #' @param ... further arguments to the plot function
 #' @return Either a vector of variance percentages explained, or nothing (just a plot), depending on value of 'return.data'
-#' @seealso pca.scree.plots
+#' @seealso \code{\link{pca.scree.plot}}
 #' @export
 #' @examples
 #' require(irlba)
@@ -352,7 +360,7 @@ pca.scree.plot <- function(eigenv,elbow=NA,printvar=TRUE,min.dim=NA,M=NULL,add.f
 #' @param max.pc maximum percentage of the variance to capture before the elbow (cumulative sum to PC 'n')
 #' @return The number of last principle component to keep, prior to the determined elbow cutoff
 #' @export
-#' @seealso estimate.eig.vpcs
+#' @seealso \code{\link{estimate.eig.vpcs}}
 #' @author Nicholas Cooper 
 #' @examples
 #' # correlated data
@@ -421,7 +429,7 @@ quick.elbow <- function(varpc,low=.08,max.pc=.9) {
 #' the equivalent operations if needing to be row-wise should be faster with bmcapply for
 #' matrices larger than available RAM.
 #' Can also be used for regular matrices although there is unlikely to be a speed advantage.
-#' @seealso get.big.matrix
+#' @seealso \code{\link{get.big.matrix}}
 #' @param bigMat the big.matrix object to apply the function upon, can enter as a filename,
 #'  description object or any other valid parameter to get.big.matrix(). Can also use with a standard matrix
 #' @param MARGIN 1=row-wise, 2=column-wise, see same argument for base:::apply()
@@ -504,7 +512,11 @@ bmcapply <- function(bigMat,MARGIN,FUN,dir=NULL,by=200,n.cores=1,
   if(length(dim(bigMat))!=2) { stop("this function only works on matrix objects") }
   if(bycol) { tot.main <- ncol(bigMat) } else { tot.main <- nrow(bigMat)}
   stepz <- round(seq(from=1,to=(tot.main+1),by=by))
+  # if the last step is too small, merge with previous
+  sc.lst <- head(tail(stepz,2),1); lst <- tail(stepz,1)
   if((tail(stepz,1)) != (tot.main+1)) { stepz <- c(stepz,(tot.main+1)) }
+  if(lst-sc.lst <=2) { ll <- length(stepz); if(ll>2) { stepz <- stepz[-(ll-1)] } else { warning("number of rows/columns quite small, may cause issues") } }
+  #
   split.to <- length(stepz)-1
   result <- numeric(tot.main)
   ## define the function
@@ -612,8 +624,11 @@ choose.comb.fn <- function(result.list,stepz) {
 #' Attempt to install the bigalgebra package using SVN
 #'
 #' The bigalgebra package for efficient algebraic operations on big.matrix objects
-#' is not currently on CRAN, and fails a check on dependencies. Changing the 
-#' description file to add the dependency, and linking 'BH' allows the package to work.
+#' has now been submitted to CRAN, so this function is now mostly redundant.
+#' It used to require installation from SVN and some tinkering, such as changing the 
+#' description file to add the dependency, and linking 'BH' to allow the package to work.
+#' This may still be required on older versions of R that do not support the bigalgebra
+#' package uploaded to CRAN, but I cannot confirm this.
 #' This function automatically performs these corrections. First, it attempts to check-out
 #'  the latest version of bigalgebra from SVN version management system and then corrects 
 #' the description file, then tries to install the package.
@@ -622,7 +637,7 @@ choose.comb.fn <- function(result.list,stepz) {
 #' but will still run without it. For more information on installation alternatives, 
 #' type big.algebra.install.help().
 #' Returns TRUE if bigalgebra is already installed.
-#' @seealso big.algebra.install.help
+#' @seealso \code{\link{big.algebra.install.help}}
 #' @param verbose whether to report on installation progress/steps
 #' @return If SVN is installed on your system, along with BLAS, this function should install the bigalgebra package,
 #'  else it will return instructions on what to do to fix the issue 
@@ -632,6 +647,7 @@ choose.comb.fn <- function(result.list,stepz) {
 svn.bigalgebra.install <- function(verbose=FALSE) {
   # this is a major hack to install bigalgebra from SVN,
   # manually modifying the DESCRIPTION file to depend and link to 'BH'
+  warning("bigalgebra is now on CRAN and so this function should be unnecessary")
   cur.dir <- getwd()
   cat("\nAttempting to install the bigalgebra package using SVN")
   if(verbose) { cat("\n") } else { cat(" .") }
@@ -683,19 +699,23 @@ svn.bigalgebra.install <- function(verbose=FALSE) {
 
 #' Attempt to install the bigalgebra package
 #'
-#' Will attempt to see whether bigalgebra is installed, then check CRAN in case it
+#' The bigalgebra package  has now been submitted to CRAN, so this function is now 
+#' mostly redundant. It may still be useful for some, and it will still work,
+#' as the first step to check CRAN, so at the risk of affecting existing code
+#' I will leave the function here for now.
+#' This function attempts to see whether bigalgebra is installed, then checks CRAN in case it 
 #' has been updated, then check RForge. Failing that, it will attempt to install
 #' using svn.bigalgebra.install(). Returns TRUE if already installed.
 #' The bigalgebra package for efficient algebraic operations on big.matrix objects
-#' is not currently on CRAN, and fails a check on dependencies. Changing the 
-#' description file to add the dependency, and linking 'BH' allows the package to work.
+#' was not currently on CRAN, and used to fail a check on dependencies. Changing the 
+#' description file was needed to add the dependency, and linking 'BH' allow3e the package to work.
 #' This function attempts to check-out the latest version of bigalgebra from SVN
 #' version management system and corrects the description file then installs.
 #' Note you must also have 'BLAS' installed on your system to utilise this package
 #' effectively. PCA functions in the present package are better with bigalgebra installed,
 #' but will still run without it. For more information on installation alternatives, 
 #' type big.algebra.install.help().
-#' @seealso svn.bigalgebra.install
+#' @seealso \code{\link{svn.bigalgebra.install}}
 #' @param verbose whether to report on installation progress/steps
 #' @return If bigalgebra is already installed, or can be installed from RForge or SVN,
 #'  this should load or install the bigalgebra package,
@@ -709,6 +729,7 @@ big.algebra.install.help <- function(verbose=FALSE) {
   # guide a manual installation
   try({ if(do.call("require",args=list("bigalgebra"))) { return(T) } })
   if("bigalgebra" %in% search.cran("big")[[1]]) { must.use.package("bigalgebra",T); return() }
+  warning("bigalgebra is now on CRAN and so this function should be unnecessary")
   cat("\nbigalgebra installation not found, will attempt to install now, but it can be tricky\n")
   do.call("install.packages",args=list("bigalgebra", repos="http://R-Forge.R-project.org"))
   if(do.call("require",args=list("bigalgebra"))) {
@@ -978,10 +999,12 @@ check.text.matrix.format <- function(fn,ncol=NA,header=NULL,row.names=NULL,sep="
 #' @export
 #' @author Nicholas Cooper 
 #' @examples 
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
 #' mat <- (generate.test.matrix(5)); prv(mat)
 #' lst <- (generate.test.matrix(5,3,big.matrix=TRUE,file.name="bigtest"))
 #' mat <- lst[[1]]; prv(mat); headl(lst[2:3]); 
 #' unlink(unlist(lst[2:3]))
+#' setwd(orig.dir) # reset working dir to original
 generate.test.matrix <- function(size=5,row.exp=2,rand=rnorm,dimnames=TRUE,
                                  data.frame=FALSE,big.matrix=FALSE,file.name=NULL, 
                                  tracker=TRUE) {
@@ -1118,6 +1141,7 @@ dir.force.slash <- function(dir) {
 #'  when text input is split across multiple files)
 #' @export
 #' @examples 
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
 #' # Collate all file names to use in this example #
 #' all.fn <- c("rownames.txt","colnames.txt","functestdn.txt","funclongcol.txt","functest.txt",
 #'  paste("rn",1:3,".txt",sep=""),paste("cn",1:3,".txt",sep=""),
@@ -1214,6 +1238,7 @@ dir.force.slash <- function(dir) {
 #' unlink(c("funclongcol.bck","funclongcol.dsc","functest.bck","functest.dsc",
 #'  "functestdn.RData","functestdn.bck","functestdn.dsc","functestdn_file_rowname_list_check_this.txt",
 #'  "split1.bck","split1.dsc","splitmatR1.bck","splitmatR1.dsc"))
+#' setwd(orig.dir) # reset working dir to original
 import.big.data <- function(input.fn=NULL, dir=getwd(), long=FALSE, rows.fn=NULL, cols.fn=NULL, 
                               pref="", delete.existing=TRUE, ret.obj=FALSE, verbose=TRUE, row.names=NULL, col.names=NULL,
                               dat.type="double", ram.gb=2, hd.gb=1000, tracker=TRUE)
@@ -1375,6 +1400,7 @@ import.big.data <- function(input.fn=NULL, dir=getwd(), long=FALSE, rows.fn=NULL
   if(pref=="") { pref <- rmv.ext(basename(input.fn))[1] }
   bck.fn <- paste(pref,"bck",sep=".")
   des.fn <- paste(pref,"dsc",sep=".")
+  rda.fn <- paste(pref,"RData",sep=".")
   ### DELETE EXISTING FILE IF HAS SAME NAME ###
   if ((!des.fn %in% list.files(dir$big)) | delete.existing )
   {
@@ -1395,6 +1421,7 @@ import.big.data <- function(input.fn=NULL, dir=getwd(), long=FALSE, rows.fn=NULL
   cat("\nCreating big matrix object to store group data")
   cat("\n predicted disk use: ",round(em,1),"GB\n")
   if(is.character(dir.force.slash(dir$big))) { if(dir$big=="") { dir$big <- getwd() } }
+  if(delete.existing & file.exists(cat.path(dir$big,bck.fn))) { unlink(cat.path(dir$big,bck.fn)) }
   bigVar <- big.matrix(nrow=rws,ncol=cls, backingfile=bck.fn, dimnames=list(cmb.row.list,cmb.ID.list),
                        type=dat.type, backingpath=dir.force.slash(dir$big),
                        descriptorfile=des.fn)
@@ -1405,7 +1432,8 @@ import.big.data <- function(input.fn=NULL, dir=getwd(), long=FALSE, rows.fn=NULL
     #test file type if matrix
     #preview(c("ff","numfls","ifn","col.mode","ffr","ffc"))
     if(long) { input.is.vec <- T } else {
-      if(file.ncol(ifn)>1) { input.is.vec <- F } else { input.is.vec <- T }
+      ncifn <- file.ncol(ifn); if(is.na(ncifn)) { stop("input file ",ifn," was empty") }
+      if(ncifn>1) { input.is.vec <- F } else { input.is.vec <- T }
     }
     nxt.rng <- (fil.ofs[ff]+1):(fil.ofs[ff+1])
     #preview("nxt.rng")
@@ -1495,8 +1523,8 @@ import.big.data <- function(input.fn=NULL, dir=getwd(), long=FALSE, rows.fn=NULL
           options(bigmemory.allow.dimnames=TRUE)
           rownames(bigVar) <- file.rn; cat("updated big.matrix rownames from names in file(s)\n")
           bigmemory::flush(bigVar)
-          big.des <- describe(bigVar)
-          des.fn <- cat.path(fn=des.fn,ext="RData")
+          big.des <- bigmemory::describe(bigVar)
+          des.fn <- cat.path(dir=dir$big,fn=des.fn,ext="RData")
           save(big.des,file=des.fn)
           warning("Had to change description file to a binary file to update rownames. This can be read in with get.big.matrix() [and should be faster to load]")
         } else {
@@ -1527,8 +1555,12 @@ import.big.data <- function(input.fn=NULL, dir=getwd(), long=FALSE, rows.fn=NULL
   cat(paste(" created big.matrix description file:",des.fn,"\n"))
   cat(paste(" created big.matrix backing file:",bck.fn,"\n"))
   if(ret.obj) {
-    return(describe(bigVar))
+    return(bigmemory::describe(bigVar))
   } else {
+    # convert to RData file regardless as the old descriptor files are now very slow
+    big.des <- bigmemory::describe(bigVar)
+    des.fn <- cat.path(dir=dir$big,fn=des.fn,ext="RData")
+    save(big.des,file=des.fn)
     return(des.fn)
   }
   cat("...complete!\n")
@@ -1659,7 +1691,8 @@ select.col.row.custom <- function(bigMat,row,col,verbose=T)
 #' @param ... other arguments to be passed to uniform.select, subpc.select, subcor.select, or select.least.assoc
 #' @return A smaller big.matrix with fewer rows and/or columns than the original matrix
 #' @export
-#' @seealso uniform.select, subpc.select, subcor.select, select.least.assoc, big.select, get.big.matrix
+#' @seealso \code{\link{uniform.select}}, \code{\link{subpc.select}}, \code{\link{subcor.select}}, 
+#' \code{\link{select.least.assoc}}, \code{\link{big.select}}, \code{\link{get.big.matrix}}
 #' @author Nicholas Cooper 
 #' @examples 
 #' bmat <- generate.test.matrix(5,big.matrix=TRUE)
@@ -1752,6 +1785,7 @@ thin <- function(bigMat,keep=0.05,how=c("uniform","correlation","pca","associati
 #' @export
 #' @author Nicholas Cooper 
 #' @examples 
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
 #' bmat <- generate.test.matrix(5,big.matrix=TRUE)
 #' # take a subset of the big.matrix without using deepcopy
 #' sel <- big.select(bmat,c(1,2,8),c(2:10),deepC=FALSE,verbose=TRUE)
@@ -1762,6 +1796,7 @@ thin <- function(bigMat,keep=0.05,how=c("uniform","correlation","pca","associati
 #' sel <- big.select(bmat, "bigrowstemp.txt","bigcolstemp.txt", delete.existing=TRUE)
 #' prv.big.matrix(sel)
 #' unlink(c("bigcolstemp.txt","bigrowstemp.txt","sel.RData","sel.bck","sel.dsc"))
+#' setwd(orig.dir) # reset working dir to original
 big.select <- function(bigMat, select.rows=NULL, select.cols=NULL, dir=getwd(), 
                        deepC=TRUE, pref="sel", delete.existing=FALSE, verbose=FALSE)
 {
@@ -1808,10 +1843,11 @@ big.select <- function(bigMat, select.rows=NULL, select.cols=NULL, dir=getwd(),
       cat(" adding rownames\n") ; rownames(bigMat1) <- rownames(bigMat)[to.order.r] 
       cat(" converting matrix to big.matrix\n") 
     }
+    if(delete.existing & file.exists(cat.path(dir$big,basename(bck.fn.o)))) { unlink(cat.path(dir$big,basename(bck.fn.o))) }
     bigMat2 <- as.big.matrix(bigMat1, backingfile=basename(bck.fn.o),
                              descriptorfile=basename(des.fn.o),backingpath=dir$big)
     if(verbose) { cat(paste(" matrix descr saved as standard description file:",des.fn.o,"\n")) }
-    descr <- describe(bigMat2)
+    descr <- bigmemory::describe(bigMat2)
   } else {
     #this is slow but creates backing file and will speed up ops later
       ### DELETE EXISTING FILE IF HAS SAME NAME ###
@@ -1831,6 +1867,7 @@ big.select <- function(bigMat, select.rows=NULL, select.cols=NULL, dir=getwd(),
         #stop()
       }
     if(verbose) { cat(" starting deep copy...") }
+    if(delete.existing & file.exists(cat.path(dir$big,basename(bck.fn.o)))) { unlink(cat.path(dir$big,basename(bck.fn.o))) }
     bigMat2 <- deepcopy(bigMat, cols = to.order.c, rows = to.order.r,
                         backingfile=basename(bck.fn.o),backingpath=dir$big,
                         descriptorfile=basename(des.fn.o) )
@@ -1841,7 +1878,7 @@ big.select <- function(bigMat, select.rows=NULL, select.cols=NULL, dir=getwd(),
     if(verbose) { cat(" added colnames\n") }
     rownames(bigMat2) <- rownames(bigMat)[to.order.r]  
     if(verbose) { cat(" added rownames\n") }
-    descr <- describe(bigMat2)
+    descr <- bigmemory::describe(bigMat2)
     bigmemory::flush(bigMat2) # hopefully this will ensure the row/colnames are added to the file backing
     if(verbose) { cat(paste(" due to use of deep copy option, recommend only to use descr saved as rbinary description file\n")) }
   }
@@ -1888,7 +1925,7 @@ big.select <- function(bigMat, select.rows=NULL, select.cols=NULL, dir=getwd(),
 #' @return A set of row or column indexes (depents on 'rows' parameter) of the most representative
 #'  variables in the matrix, as defined by most correlated to principle components
 #' @export
-#' @seealso thin, uniform.select, big.PCA, get.big.matrix
+#' @seealso \code{\link{thin}}, \code{\link{uniform.select}}, \code{\link{big.PCA}}, \code{\link{get.big.matrix}}
 #' @author Nicholas Cooper 
 #' @examples 
 #' mat <- matrix(rnorm(200*2000),ncol=200) # normal matrix
@@ -2001,7 +2038,7 @@ subpc.select <- function(bigMat,keep=.05,rows=TRUE,dir=getwd(),random=TRUE,ram.g
 #' @return A set of row or column indexes (depents on 'rows' parameter) of the most inter-correlated
 #'  (or least) variables in the matrix.
 #' @export
-#' @seealso thin, uniform.select, get.big.matrix
+#' @seealso \code{\link{thin}}, \code{\link{uniform.select}}, \code{\link{get.big.matrix}}
 #' @author Nicholas Cooper 
 #' @examples 
 #' mat <- matrix(rnorm(200*2000),ncol=200)
@@ -2082,7 +2119,7 @@ subcor.select <- function(bigMat,keep=.05,rows=TRUE,hi.cor=TRUE,dir=getwd(),rand
 #' @return A set of row or column indexes (depents on 'rows' parameter) of uniformly distributed
 #'  (optionally reproduceable) or randomly selected variables in the matrix.
 #' @export
-#' @seealso subpc.select
+#' @seealso \code{\link{subpc.select}}
 #' @author Nicholas Cooper 
 #' @examples 
 #' mat <- matrix(rnorm(200*100),ncol=200)  # standard matrix
@@ -2131,16 +2168,21 @@ uniform.select <- function(bigMat,keep=.05,rows=TRUE,dir="",random=TRUE,ram.gb=0
 #'  variable to perform the association test for phenotype, etc. This file may contain extra
 #'  ids not in colnames(bigMat), although if any column names of bigMat are missing from
 #'  sample.info a warning will be given, and the call is likely to give incorrect results.
-#' @param use.col the name of the categorical phenotype column in the data.frame 'sample.info'
+#' @param use.col the name of the phenotype column in the data.frame 'sample.info'
 #' @param p.values logical, whether to return p.values from the associations 
 #' @param F.values logical, whether to return F.values from the associations
 #' @param n.cores integer, if wanting to process the analysis using multiple cores, specify the number
 #' @return Depending on options selected returns either a list of F values and p values, or just F, or just p-values
 #'  for association with each variable in the big.matrix.
 #' @param verbose logical, whether to display additional output on progress
-#' @return if both F.values and p.values are TRUE, returns dataframe of both statistics for each variable, else a vector
+#' @return If both F.values and p.values are TRUE, returns dataframe of both statistics for each variable, else a vector.
+#' If the phenotype has 20 more or more unique categories, it will be assumed to be continuous and the association
+#' test applied will be correlation. If there are two categories a t-test will be used, and 3 to 19 categories, an ANOVA#
+#' will be used. Regardless of the analysis function, output will be converted to an F statistic and/or associated p-values.
+#' Except if p.values and F.values are both set to FALSE and the phenotype is continuous, then pearsons correlation values
+#' will be returned
 #' @export
-#' @seealso get.big.matrix
+#' @seealso \code{\link{get.big.matrix}}
 #' @author Nicholas Cooper 
 #' @examples 
 #' bmat <- generate.test.matrix(5,big.matrix=TRUE)
@@ -2158,7 +2200,7 @@ quick.pheno.assocs <- function(bigMat,sample.info=NULL,use.col="phenotype",dir="
   # for 2 phenotypes/grps gives t values - ordinally equivalent to logistic regression with 2 groups
   if(!all(c(use.col) %in% colnames(sample.info))) { stop(paste("sample.info was invalid for association tests, need ",use.col," column")) }
   if(verbose) {
-    cat(" running row-wise tests against",use.col,"to filter most associated\n")
+    cat(" running row-wise tests against",use.col,"\n")
   }
   bigMat <- get.big.matrix(bigMat,dir)
   samp.list <- colnames(bigMat); 
@@ -2170,22 +2212,27 @@ quick.pheno.assocs <- function(bigMat,sample.info=NULL,use.col="phenotype",dir="
   if(length(cutt)>0) {  sample.info <- sample.info[-cutt,,drop=F]  }
   if(ncol(bigMat)!=nrow(sample.info)) { 
     n.mis <- length(which(colnames(bigMat) %in% rownames(sample.info)))
-    warning(n.mis," samples in BigMat were not in sample.info [failure likely]")
+    warning(n.mis," samples in BigMat were found in sample.info [failure likely]")
   }
   ## determine test to use based on number of phenotypes ##
+  #print(head(sample.info)); iii34 <- sample.info[[paste(use.col)]]; prv(iii34)
+  #print(table(sample.info[[paste(use.col)]],useNA=NULL))
   n.phenos <- length(table(sample.info[[paste(use.col)]],useNA=NULL))
   #si <- table(sample.info[[paste(use.col)]],useNA=NULL)
   #prv(si,use.col,sample.info)
   t.type <- "single"
   if(n.phenos==2) { t.type <- "t.test"}
   if(n.phenos>2) { t.type <- "anova"}
+  if(n.phenos>19) { t.type <- "cor"; if(!p.values & !F.values) { t.type <- "cor2"; F.values <- T } }
   if(verbose) {
     cat(" found ",n.phenos," ",use.col,"s, ",t.type," will be used to summarise rows most associated with ",use.col,"\n\n",sep="")
   }
   three.test <- function(col,pheno) { return(summary(aov(col~pheno))[[1]][["F value"]][1]) }
   two.test <- function(col,pheno) { return((cor.test(col,pheno)$statistic)^2)  }
-  ph.test <- switch(t.type,anova=three.test,t.test=two.test,single=NULL)
-  if(is.null(ph.test)) { stop("Error: used option for association test by ",use.col," but there is only 1 type in file")}
+  cnt.test <- function(col,pheno) { return(cor(col,pheno,use="pairwise.complete"))  }
+  ph.test <- switch(t.type,anova=three.test,t.test=two.test,cor=two.test,cor2=cnt.test,single=NULL)
+  deg.fr <- switch(t.type,anova=n.phenos-1,t.test=1,cor=1,single=NULL)
+  if(is.null(ph.test)) { stop("Error: used option for association test by ",use.col," but there is only 1 phenotype in file")}
   row.labels <- rownames(bigMat)
   full.size <- length(row.labels)
   good.mem.lim <- 10^7 # allows fast processing at this limit
@@ -2200,6 +2247,11 @@ quick.pheno.assocs <- function(bigMat,sample.info=NULL,use.col="phenotype",dir="
   seg.starts <- seg.starts[!duplicated(seg.starts)]
   results <- vector("list", n.segs)
   pheno <- sample.info[[use.col]]
+  if(!is.numeric(pheno)) { 
+    pp <- pheno; pheno <- as.numeric(factor(paste(pp)))
+    warning("pheno was not numeric, so recoded:\n")
+    ii <- table(pp,pheno); cat(paste(rownames(ii),colnames(ii),sep=" ==> "),"\n")  
+  }
   test.seg <- matrix(numeric(),nrow=opt.size,ncol=tot.samps)
   # break analysis into chunks that fit in memory
   # NB: avoided parallel computing - it does not seem to add any speed here?
@@ -2229,8 +2281,10 @@ quick.pheno.assocs <- function(bigMat,sample.info=NULL,use.col="phenotype",dir="
   p.from.f <- function(FF,k,n) {  pf(FF, k, n,lower.tail = FALSE) }
   # pvalues <- sapply(Fvalues^.5,p.from.t,df=tot.samps-1)
   if(is.numeric(Fvalues)) {
-    pvalues <- sapply(Fvalues,p.from.f,k=n.phenos,n=round(tot.samps/n.phenos))
-    if(p.values) { out <- pvalues } else { out <- Fvalues }
+    if(p.values) { 
+      pvalues <- sapply(Fvalues,p.from.f,k=deg.fr,n=(tot.samps-1))
+      out <- pvalues 
+    } else { out <- Fvalues }
     if(verbose) {
       cat("\nSummary of",if(p.values & !F.values) { "p-value" } else { "F" },"statistics returned:\n"); print(summary(out)); cat("\n")
     }
@@ -2272,7 +2326,7 @@ quick.pheno.assocs <- function(bigMat,sample.info=NULL,use.col="phenotype",dir="
 #' @return A set of row or column indexes (depents on 'rows' parameter) of the variables most dependent
 #'  (or indepent) variables measured by association with a [continuous/categorical] phenotype.
 #' @export
-#' @seealso quick.pheno.assocs
+#' @seealso \code{\link{quick.pheno.assocs}}
 #' @author Nicholas Cooper 
 #' @examples 
 #' bmat <- generate.test.matrix(5,big.matrix=TRUE)
@@ -2326,9 +2380,26 @@ cut.fac <- function(N,n.grps,start.zero=FALSE,factor=TRUE) {
 
 #' PCA/Singular Value Decomposition for big.matrix
 #' 
-#' description ...
-#' ...
-#' ...
+#' At the time of submission there was no existing native method to conduct principle components
+#' analysis (PCA) on big.matrix objects. This function allows singular value decomposition (SVD) of
+#' very large matrices, very efficiently, versus the default method. The major speed advantages
+#' occur when the 'bigalgebra' package is installed, and when the argument for this function
+#' 'SVD'=TRUE. Regular PCA can be conducted using SVD=FALSE but it will be slower and the maximum
+#' matrix size able to produce a result, given memory limits, will be smaller. SVD is not exactly
+#' the same as PCA, but from my testing the components produced will correlate R>.9 with components
+#' of PCA on the same matrix. This function is not completely native to big.matrix objects so 
+#' there is one step where the matrix submitted needs to be loaded into memory, so if your 
+#' big.matrix object is larger than the allowed size of a standard R-matrix [[which is roughly 3GB; 
+#' you can check using NCmisc::estimate.memory()], then this function will fail unless you set the 
+#' option 'thin' to a percentage that, multiplied by the original matrix memory-load, is under 3GB.
+#' For large matrices in my applications, components produced with thinning are still highly 
+#' correlated with components produced using the full dataset. For a breakdown of thinning methods,
+#' see the description for the function thin() for more  information. Even with medium sized
+#' matrices, for instance 15,000 x 50,000 in size, this function is orders of magnitude faster
+#' than the standard R PCA functions, usually running in a matter of minutes, rather than hours
+#' or days in examples that I have tested, due to much better handling of memory for internal
+#' transpose and eigen operations by using the 'bigmemory' architecture.
+#'
 #' @param bigMat a big.matrix object, or any argument accepted by get.big.matrix(), which includes
 #'  paths to description files or even a standard matrix object.
 #' @param dir directory containing the filebacked.big.matrix, and also where the output
@@ -2357,9 +2428,11 @@ cut.fac <- function(N,n.grps,start.zero=FALSE,factor=TRUE) {
 #' @param center whether to 'centre' the matrix rows by subtracting rowMeans() before conducting the PCA. This is usually
 #'  advisable, although you may wish to skip this if the matrix is already centred to save extra processing.
 #'  unlike prcomp there is no option to standardize or use the correlation matrix, if this is desired, please
-#'  standardize the bigMat object before running this function.
+#'  standardize the bigMat object before running this function. Alternatively, 'center' can be a vector of length
+#'  nrow(bigMat) which gives an offset to correct each row by.
 #' @param save.pcs whether to save the principle component matrix and eigenvalues to a binary file with name pcs.fn
 #' @param pcs.fn name of the binary when save.pcs=TRUE
+#' @param return.loadings logical, whether to return the 'loadings' (or the other singular vector when SVD=T); could result in a speed decrease
 #' @param verbose whether to display detailed progress of the PCA
 #' @param use.bigalgebra logical, whether to use the bigalgebra package for algebraic operations. For large
 #'  datasets bigalgebra should provide a substantial speedup, and also facilitates use of larger matrices. This 
@@ -2367,11 +2440,15 @@ cut.fac <- function(N,n.grps,start.zero=FALSE,factor=TRUE) {
 #'  is not currently available on CRAN, but only SVN and RForge. See svn.bigalgebra.install() or big.algebra.install.help()
 #'  Default is to use bigalgebra if available (TRUE), but setting this FALSE prevents the check for bigalgebra which would be
 #'  cleaner if you know that you don't have it installed.
-#' @param ... if thin is TRUE, then these should be any additional arguments for thin(), e.g, 'keep', 'how', etc.
+#' @param ... if thin is TRUE, then these should be any additional arguments for thin(), e.g, 'keep', 'how', etc.i
+#' @param delete.existing logical, whether to automatically delete filebacked matrices (if they exist) 
+#' before rewriting. This is because of an update since 20th October 2015 where bigmemory won't allow
+#' overwrite of an existing filebacked matrix. If you wish to set this always TRUE or FALSE, use
+#'  options(deleteFileBacked)
 #' @return A list of principle components/singular vectors (may be incomplete depending on options selected), and of
 #'  the eigenvalues/singular values.
 #' @export
-#' @seealso get.big.matrix, PC.correct
+#' @seealso \code{\link{get.big.matrix}}, \code{\link{PC.correct}}
 #' @author Nicholas Cooper
 #' @examples 
 ## PRELIMINARY EXAMPLES: demonstration of PCA versus SVD ##
@@ -2412,6 +2489,7 @@ cut.fac <- function(N,n.grps,start.zero=FALSE,factor=TRUE) {
 #' headl(result)
 #' # plot the eigenvalues with a linear fit line and elbow placed at 13
 #' Eigv <- pca.scree.plot(result$Evalues,M=bmat,elbow=6,printvar=FALSE)
+#' unlink(c("testMyBig.bck","testMyBig.dsc"))
 #' ##  generate some data with reasonable intercorrelations ##
 #' mat2 <- sim.cor(500,200,genr=function(n){ (runif(n)/2+.5) })
 #' bmat2 <- as.big.matrix(mat2,backingfile="testMyBig.bck",descriptorfile="testMyBig.dsc")
@@ -2440,7 +2518,7 @@ cut.fac <- function(N,n.grps,start.zero=FALSE,factor=TRUE) {
 #' unlink(c("testMyBig.bck","testMyBig.dsc"))
 big.PCA <- function(bigMat,dir=getwd(),pcs.to.keep=50,thin=FALSE,SVD=TRUE,LAP=FALSE,center=TRUE,
                     save.pcs=FALSE,use.bigalgebra=TRUE,pcs.fn="PCsEVsFromPCA.RData",
-                    verbose=FALSE,...) 
+                    return.loadings=FALSE,verbose=FALSE,delete.existing=getOption("deleteFileBacked"),...) 
 {
   # run principle components analysis on the SNP subset of the LRR snp x sample matrix
   # various methods to choose from with pro/cons of speed/memory, etc.
@@ -2460,7 +2538,7 @@ big.PCA <- function(bigMat,dir=getwd(),pcs.to.keep=50,thin=FALSE,SVD=TRUE,LAP=FA
     if(verbose) {  prv.big.matrix(bigMat) }
   } 
   pcaMat <- get.big.matrix(bigMat,dir)
-  print(dim(pcaMat))
+  #print(dim(pcaMat))
   if(verbose & !thin) { prv.big.matrix(pcaMat,name="pcaMat") }
   est.mem <- estimate.memory(pcaMat)
   if(est.mem>1) {
@@ -2471,12 +2549,28 @@ big.PCA <- function(bigMat,dir=getwd(),pcs.to.keep=50,thin=FALSE,SVD=TRUE,LAP=FA
   subMat <- pcaMat[1:nrow(pcaMat),1:ncol(pcaMat)] # must convert bigmatrix to plain matrix here, no pca yet takes a bigmatrix
   rm(pcaMat)
   # center using row means
+  if(length(center)>1) {
+    if(length(center)==nrow(subMat)) {
+      CM <- center
+      center <- TRUE
+      rm.sub <- function(X) { 
+        mmm <-  matrix(rep(CM,times=ncol(subMat)),ncol=ncol(subMat),byrow=F)
+        prv(mmm)
+        return(mmm)
+      }
+    } else {
+      rm.sub <- rowMeans ; warning("center vector didn't match number of rows of 'bigMat', data left uncentered")
+      center <- FALSE
+    }
+  } else { 
+      rm.sub <- rowMeans # a bit hacky?
+  }
   if(center) {
     if(verbose) { cat(" centering data by row means...") }
-    subMat <- subMat - rowMeans(subMat)  #matrix(rep(rowMeans(subMat),times=ncol(subMat)),ncol=ncol(subMat))
+    subMat <- subMat - rm.sub(subMat)  #matrix(rep(rowMeans(subMat),times=ncol(subMat)),ncol=ncol(subMat))
     subMat[is.na(subMat)] <- 0 # replace missing with the mean
-    #cat(" means for first 10 snps:\n")
-    #print(round(head(rowMeans(subMat),10))) # show that centering has worked
+    cat(" means for first 10 snps:\n")
+    print(round(head(rowMeans(subMat),10))) # show that centering has worked
   } else {
     subMat <- apply(subMat,1,row.rep)
   }
@@ -2494,6 +2588,7 @@ big.PCA <- function(bigMat,dir=getwd(),pcs.to.keep=50,thin=FALSE,SVD=TRUE,LAP=FA
     if(verbose) { cat(" PCA using 'princomp' (only for datasets with more samples than markers)\n") }
     print(system.time(result <- princomp(t(subMat))))
     PCs <- result$scores[,1:pcs.to.keep]
+    loadings <- result$loadings[,1:pcs.to.keep]
     Evalues <- result$sdev^2 # sds are sqrt of eigenvalues
   } else {
     if(!SVD) {
@@ -2510,29 +2605,35 @@ big.PCA <- function(bigMat,dir=getwd(),pcs.to.keep=50,thin=FALSE,SVD=TRUE,LAP=FA
       if(verbose) {  cat("took",round(uu[3]/60,1),"minutes\n") }
       PCs <- result$vectors[,1:pcs.to.keep]
       Evalues <- result$values
+      loadings <- NULL
     } else {
       pt <- "package:"; pkgset <- gsub(pt,"",search()[grep(pt,search())])
       do.fast <- (!LAP & (all(c("irlba","bigalgebra") %in% pkgset)))
       if(!use.bigalgebra) { do.fast <- F }
       if(verbose) {
         cat(" PCA by singular value decomposition...") # La.svd gives result with reversed dims. (faster?)
-      }
+      } 
+      if(return.loadings)  { nU <- pcs.to.keep } else { nU <- 0 }
       if(!LAP) {
         if(do.fast) {
-          uu <-(system.time(result <- irlba(subMat,nv=pcs.to.keep,nu=0,matmul=matmul))) 
+          uu <-(system.time(result <- irlba(subMat,nv=pcs.to.keep,nu=nU,mult=matmul))) 
         } else {
           if(use.bigalgebra & verbose) { warning("[without 'bigalgebra' package, PCA runs slowly for large datasets,", 
               "see 'big.algebra.install.help()']\n") }
-          uu <-(system.time(result <- svd(subMat,nv=pcs.to.keep,nu=0)))
+          uu <-(system.time(result <- svd(subMat,nv=pcs.to.keep,nu=nU)))
         }
         if(verbose) { cat("took",round(uu[3]/60,1),"minutes\n") }
         PCs <- result$v[,1:pcs.to.keep]
-        Evalues <- result$d^2 # singular values are the sqrt of eigenvalues
+        #print("thus ones"); prv(result,return.loadings,nU)
+        if(return.loadings) { loadings <- result$u[,1:pcs.to.keep] } else { loadings <- NULL }
+        Evalues <- result$d^2 # singular values are the sqrt of eigenvalues 
       } else {
         if(verbose) { cat("\n [using LAPACK alternative with La.svd]") }
-        uu <- (system.time(result <- La.svd(subMat,nv=pcs.to.keep,nu=0)))
+        uu <- (system.time(result <- La.svd(subMat,nv=pcs.to.keep,nu=nU)))
         if(verbose) { cat("took",round(uu[3]/60,1),"minutes\n") }
         PCs <- t(result$vt)[,1:pcs.to.keep]  ##?
+       # print("thOs ones")
+        if(return.loadings) { loadings <- result$u[,1:pcs.to.keep] } else { loadings <- NULL }
         Evalues <- result$d^2 # singular values are the sqrt of eigenvalues
       }
     }
@@ -2542,9 +2643,16 @@ big.PCA <- function(bigMat,dir=getwd(),pcs.to.keep=50,thin=FALSE,SVD=TRUE,LAP=FA
   if(save.pcs) {
     ofn <- cat.path(dir$pc,pcs.fn)
     cat(paste("~wrote PC data to file:",ofn,"\n"))
-    save(PCs,Evalues,file=ofn) }
-  out.dat <- list(PCs,Evalues)
-  names(out.dat) <- c("PCs","Evalues")
+    save(PCs,Evalues,loadings,file=ofn) }
+  if(return.loadings & exists("loadings")) {
+    colnames(loadings) <- paste("PC",1:pcs.to.keep,sep="")
+    rownames(loadings) <- rownames(subMat)
+    out.dat <- list(PCs,Evalues,loadings)
+    names(out.dat) <- c("PCs","Evalues","loadings")
+  } else {
+    out.dat <- list(PCs,Evalues)
+    names(out.dat) <- c("PCs","Evalues")
+  }
   return(out.dat)
 }
 
@@ -2557,12 +2665,12 @@ big.PCA <- function(bigMat,dir=getwd(),pcs.to.keep=50,thin=FALSE,SVD=TRUE,LAP=FA
 #' 
 #' Principle components (PC) can be used as a way of capturing bias (when common variance represents bias)
 #' and so PC correction is a way to remove such bias from a dataset. Using the first 'n' PCs from an 
-#' an analysis performed using big.pca(), this function will transform the original matrix by regressing
+#' an analysis performed using big.PCA(), this function will transform the original matrix by regressing
 #' onto the 'n' principle components (and optionally gender) and returing the residuals. The result
 #' is returned as a big.matrix object, so that objects larger than available RAM can be processed, and
 #' multiple processors can be utilised for greater speed for large datasets.
 #' 
-#' @param pca.result result returned by 'big.pca()', or a list with 2 elements containing
+#' @param pca.result result returned by 'big.PCA()', or a list with 2 elements containing
 #'  the principle components and the eigenvalues respectively (or SVD equivalents). Alternatively,
 #'  can be the name of an R binary file containing such an object.
 #' @param bigMat a big.matrix with exactly corresponding samples (columns) to those submitted to PCA prior to correction
@@ -2577,26 +2685,37 @@ big.PCA <- function(bigMat,dir=getwd(),pcs.to.keep=50,thin=FALSE,SVD=TRUE,LAP=FA
 #'  a dataframe containing the sex of each sample, with sample names as rownames
 #' @param correct.sex if sample.info is a dataframe containing a column named 'gender' or 'sex'
 #'  (case insensitive), then add a sex covariate to the PC correction linear model
-#' @param add.int whether to maintain the pre-corrected means of each variable, i.e, post-correction
-#'  add the mean back onto the residuals which will have mean zero for each variable.
+#' @param add.int logical, whether to maintain the pre-corrected means of each variable, i.e, post-correction
+#'  add the mean back onto the residuals which will otherwise have mean zero for each variable.
+#' @param preserve.median logical, if add.int=TRUE, then setting this parameter to TRUE will preserve
+#'  the median of the original data, instead of the mean. This is because after PC-correction the 
+#'  skew may change.
 #' @param tracker logical, whether to display a progress bar
+#' @param verbose logical, whether to display preview of pre- and post- corrected matrix
+#' @param delete.existing logical, whether to automatically delete filebacked matrices (if they exist) 
+#' before rewriting. This is because of an update since 20th October 2015 where bigmemory won't allow
+#' overwrite of an existing filebacked matrix. If you wish to set this always TRUE or FALSE, use
+#'  options(deleteFileBacked)
 #' @return A big.matrix of the same dimensions as original, corrected for n PCs and an optional covariate (sex)
 #' @export
-#' @seealso big.pca
+#' @seealso \code{\link{big.PCA}}
 #' @author Nicholas Cooper 
 #' @examples 
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
 #' mat2 <- sim.cor(500,200,genr=function(n){ (runif(n)/2+.5) })
 #' bmat2 <- as.big.matrix(mat2,backingfile="testMyBig.bck",descriptorfile="testMyBig.dsc")
-#' # calculate PCA 
-#' packages.loaded()
+#' ## calculate PCA ##
 #' # result2 <- big.PCA(bmat2,thin=FALSE)
 #' # corrected <- PC.correct(result2,bmat2)
 #' # corrected2 <- PC.correct(result2,bmat2,n.cores=2)
-#' # all.equal(corrected,corrected2)
+#' # c1 <- get.big.matrix(corrected) ; c2 <- get.big.matrix(corrected2)
+#' # all.equal(as.matrix(c1),as.matrix(c2))
 #' unlink(c("testMyBig.bck","testMyBig.dsc"))
+#' setwd(orig.dir) # reset working dir to original
 PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="corrected",
                             big.cor.fn=NULL,write=FALSE,sample.info=NULL,correct.sex=FALSE,
-                            add.int=FALSE,tracker=TRUE)
+                            add.int=FALSE,preserve.median=FALSE, tracker=TRUE,verbose=TRUE,
+                            delete.existing=getOption("deleteFileBacked"))
 {
   ## using results of a PCA analysis, run correction for 'num.pcs' PCs on a dataset
   # uncorrected matrix
@@ -2609,8 +2728,10 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
     dir <- list(big=dir,pc=dir)
   }
   origMat <- get.big.matrix(bigMat,dir)
-  cat("\nRunning Principle Components correction (PC-correction), using LRR-dataset:\n")
-  prv.big.matrix(origMat,name="origMat")
+  if(verbose) {
+    cat("\nRunning Principle Components correction (PC-correction), using LRR-dataset:\n")
+    prv.big.matrix(origMat,name="origMat")
+  }
   if(n.cores>1) { multi <- T } else { multi <- F }
   # get filenames now to add to result later
   rN <- rownames(origMat); cN <- colnames(origMat)
@@ -2644,7 +2765,11 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
   }
   # create new matrix same size, ready for corrected values
   nR <- nrow(origMat); nC <- ncol(origMat)
-  cat(" creating new file backed big.matrix to store corrected data...")
+  if(nR<2) { stop("too few rows to run PC correction") }
+  if(nC<2) { stop("too few columns to run PC correction") }
+  if(verbose) { cat(" creating new file backed big.matrix to store corrected data...") }
+  fnm <- paste(pref,"bck",sep=".")
+  if(delete.existing & file.exists(cat.path(dir$big,fnm))) { unlink(cat.path(dir$big,fnm))  }
   pcCorMat <- filebacked.big.matrix(nR,nC, backingfile=paste(pref,"bck",sep="."),
                                     backingpath=dir$big, descriptorfile=paste(pref,"dsc",sep="."))
   cat("done\n")
@@ -2668,7 +2793,7 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
     }
   }
   nPCs <- cbind(rep(1,nrow(nPCs)),nPCs) # this adds intercept term for lm.fit() [remove if using lm() ]
-  cat(" correcting by principle components",sex.txt,", taking the LRR lm-residual for each SNP\n",sep="")
+  cat(" correcting by principle components",sex.txt,", taking the regression-residual for each variable\n",sep="")
   jj <- proc.time()
   nsamples <- ncol(origMat)
   num.snps <- nrow(origMat); sampz <- 1:nsamples
@@ -2678,12 +2803,15 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
   ## assume if we have lots of cores, we'd also have lots of RAM too
   if(n.cores>5) { snps.per.proc <- snps.per.proc*2; flush.freq <- flush.freq*2 } 
   if(n.cores>15) { snps.per.proc <- snps.per.proc*2 }
-  snps.per.proc <- max(snps.per.proc,n.cores) # at least 1 snp per core as a minimum
+  #snps.per.proc <- max(snps.per.proc,n.cores) # at least 1 snp per core as a minimum
+  if(snps.per.proc<n.cores) { n.cores <- snps.per.proc %/% 5 } # if really low num, use less cores
   stepz <- round(seq(from=1,to=num.snps+1,by=snps.per.proc))
   if((tail(stepz,1)) != num.snps+1) { stepz <- c(stepz,num.snps+1) }
+  # if the last step is too small, merge with previous
+  sc.lst <- head(tail(stepz,2),1); lst <- tail(stepz,1)
+  if(lst-sc.lst <=4) { ll <- length(stepz); if(ll>2) { stepz <- stepz[-(ll-1)] } else { warning("number of SNPs quite small, may cause issues") } }
   split.to <- length(stepz)-1
   big.extras <- T # flush memory every 'n' iterations.
-  
   # this simple way works (instead of big for-loop) but hogs memory and is no faster
   # [NB: requires transpose of target corrected big matrix dimensions]
   ### pcCorMat <- apply(origMat,1,PC.fn,nPCs=nPCs,col.sel=sampz)
@@ -2693,13 +2821,15 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
     # use of this 'sub.big.matrix' structure, stops the memory leak behaviour which spirals
     # the memory relating to 'origMat' out of control. 
     next.rows <- sub.big.matrix(origMat, firstRow=x1, lastRow=x2, backingpath=dir$big )
+    if(length(Dim(next.rows))!=2) { stop("expected a matrix, got a vector")}
+   # prv(next.rows,x1,x2,nPCs,multi,split.to,stepz)
     # next.rows is now a pointer to a matrix subset, must use 'as.matrix' to coerce to a regular R object 
     if(multi) {
       #pcCorMat[x1:x2,] <- PC.fn.mat.multi(next.rows[1:nrow(next.rows),1:ncol(next.rows)],nPCs,mc.cores=n.cores,add.int=add.int)
-      pcCorMat[x1:x2,] <- PC.fn.mat.multi(bigmemory::as.matrix(next.rows),nPCs,mc.cores=n.cores,add.int=add.int)
+      pcCorMat[x1:x2,] <- PC.fn.mat.multi(bigmemory::as.matrix(next.rows),nPCs,mc.cores=n.cores,add.int=add.int, pm=preserve.median)
     } else {
       #pcCorMat[x1:x2,] <- PC.fn.mat.apply(next.rows[1:nrow(next.rows),1:ncol(next.rows)],nPCs,add.int=add.int)
-      pcCorMat[x1:x2,] <- PC.fn.mat.apply(bigmemory::as.matrix(next.rows),nPCs,add.int=add.int)
+      pcCorMat[x1:x2,] <- PC.fn.mat.apply(bigmemory::as.matrix(next.rows),nPCs,add.int=add.int, pm=preserve.median)
     }
     if(tracker) { loop.tracker(dd,split.to) }
     ## Every 'flush.freq' iterations clean up the memory, remove the 
@@ -2709,7 +2839,7 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
       if(!fl.suc) { cat("flush failed\n") } 
       gc()  # garbage collection
       if(big.extras) {
-        RR <- describe(pcCorMat)
+        RR <- bigmemory::describe(pcCorMat)
         rm(pcCorMat)
         pcCorMat <- attach.big.matrix(RR,path=dir$big)
       }
@@ -2720,12 +2850,14 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
   options(bigmemory.allow.dimnames=TRUE)
   rownames(pcCorMat) <- rN;  colnames(pcCorMat) <- cN 
   ll <- proc.time()
-  cat(paste(" LRR PC-Correction took",round((ll-jj)[3]/3600,3),"hours\n"))
+  time.taken <- round((ll-jj)[3]/3600,3)
+  if(time.taken>1/180) {  cat(paste(" PC-Correction took",time.taken,"hours\n")) }
   bigmemory::flush(pcCorMat) # should allow names to take  
-  cat("\nPC-corrected dataset produced:\n")
-  prv.big.matrix(pcCorMat,name="pcCorMat")
-  
-  mat.ref <- describe(pcCorMat)
+  if(verbose) {
+    cat("\nPC-corrected dataset produced:\n")
+    prv.big.matrix(pcCorMat,name="pcCorMat")
+  }  
+  mat.ref <- bigmemory::describe(pcCorMat)
   if(write) {
     if(is.null(big.cor.fn) | !is.character(big.cor.fn)) {
       big.fn <- paste("describePCcorrect",num.pcs,".RData",sep="")
@@ -2770,6 +2902,10 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
 #'  in question is larger than 1GB.
 #' @param file.ok whether to accept big.matrix.descriptors or filenames as input for 
 #'  'bigMat'; if T, then anything that works with get.big.matrix(bigMat,dir) is acceptable
+#' @param delete.existing logical, whether to automatically delete filebacked matrices (if they exist) 
+#' before rewriting. This is because of an update since 20th October 2015 where bigmemory won't allow
+#' overwrite of an existing filebacked matrix. If you wish to set this always TRUE or FALSE, use
+#'  options(deleteFileBacked)
 #' @return A big.matrix that is the transpose (rows and columns switched) of the original matrix
 #' @export
 #' @examples 
@@ -2782,7 +2918,7 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
 #' prv.big.matrix(tbM)
 #' unlink(c("t.bigMat.RData","t.bigMat.bck","t.bigMat.dsc","test.bck","test.dsc"))
 big.t <- function(bigMat,dir=NULL,name="t.bigMat",R.descr=NULL,max.gb=NA,
-                  verbose=F,tracker=NA,file.ok=T) {
+                  verbose=F,tracker=NA,file.ok=T,delete.existing=getOption("deleteFileBacked")) {
   #this can be slow!
   if(is.null(R.descr)) { R.descr <- cat.path(dirname(name),name,ext="RData") }
   if(!is.big.matrix(bigMat)) {
@@ -2810,6 +2946,7 @@ big.t <- function(bigMat,dir=NULL,name="t.bigMat",R.descr=NULL,max.gb=NA,
   if(verbose) { cat(" creating",nC,"x",nR,"target matrix,",name,"...") }
   des <- paste(name,"dsc",sep=".")
   bck <- paste(name,"bck",sep=".")
+  if(file.exists(cat.path(dir,bck)) & delete.existing) { unlink(cat.path(dir,bck)) }
   bigTrans <- big.matrix(nrow=nC,ncol=nR, backingfile=bck,
                          backingpath=dir, descriptorfile=des)
   if(verbose) { cat("done\n"); cat("\nAdding names\n") }
@@ -2823,7 +2960,11 @@ big.t <- function(bigMat,dir=NULL,name="t.bigMat",R.descr=NULL,max.gb=NA,
   split.to <- 10*round(estimate.memory(bigMat)) # split into .1GB chunks, save RAM without creating groups too small to process
   #if(n.cores>4) { split.to <- split.to * 4 } # divide more if using multicores
   stepz <- round(seq(from=1,to=nC+1,length.out=round((split.to+1))))
+  # if the last step is too small, merge with previous
+  sc.lst <- head(tail(stepz,2),1); lst <- tail(stepz,1)
   if((tail(stepz,1)) != nC+1) { stepz <- c(stepz,nC+1) }
+  if(lst-sc.lst <=2) { ll <- length(stepz); if(ll>2) { stepz <- stepz[-(ll-1)] } else { warning("number of columns quite small, may cause issues") } }
+  #
   split.to <- length(stepz)-1
   if(verbose) { cat(" transposing 'bigMat' into new big.matrix object:\n") }
   if(is.na(max.gb)) { max.gb <- split.to + 10 }
@@ -2834,7 +2975,7 @@ big.t <- function(bigMat,dir=NULL,name="t.bigMat",R.descr=NULL,max.gb=NA,
     # do the copying
     lilColRange <- c(c1:c2)
     if(tracker) {      loop.tracker(cc,split.to) }
-    if(is.finite(sum(lilColRange))) {
+    if(is.finite(sum(as.numeric(lilColRange)))) {
       #cat(range(lilColRange)); cat(dim(bigTrans)); cat(dim(bigMat))
       bigTrans[lilColRange,1:nR] <- t(bigMat[1:nR,lilColRange])
     } else {
@@ -2844,13 +2985,13 @@ big.t <- function(bigMat,dir=NULL,name="t.bigMat",R.descr=NULL,max.gb=NA,
       # reset memory after every 'max.gb' 1GB chunks to prevent skyrocketing RAM use #
       fl.suc <- bigmemory::flush(bigTrans) ;  if(!fl.suc) { cat("flush failed\n") } ; gc()  
       if(T) {
-        RR <- describe(bigTrans); rm(bigTrans); bigTrans <- attach.big.matrix(RR,path=dir)
+        RR <- bigmemory::describe(bigTrans); rm(bigTrans); bigTrans <- attach.big.matrix(RR,path=dir)
       }
     }
   }
   #})
   if(verbose) { cat(" combining complete, converting result to big matrix\n") }
-  descr <- describe(bigTrans)
+  descr <- bigmemory::describe(bigTrans)
   bigmemory::flush(bigTrans) # hopefully this will ensure the row/colnames are added to the file backing
   
   if(verbose) {
@@ -2867,59 +3008,113 @@ big.t <- function(bigMat,dir=NULL,name="t.bigMat",R.descr=NULL,max.gb=NA,
 
 ### INTERNAL FUNCTIONS ###
 #' Internal
-PC.fn.mat <- function(next.rows,nPCs,add.int=F)
+#' pm is 'preserve.median'
+PC.fn.mat <- function(next.rows, nPCs, add.int=FALSE, pm=FALSE)
 {
   # matrix version of PC.fn (used to PC-correct one SNP at a time)
   col.sel <- 1:ncol(next.rows)
   for (dd in 1:nrow(next.rows)) {
     # compiled PC.fn should speed up these ops a little
-    next.rows[dd,] <- PC.fn(next.rows[dd,],nPCs,col.sel,add.int=add.int) 
+    next.rows[dd,] <- PC.fn(next.rows[dd,],nPCs,col.sel,add.int=add.int,pm=pm) 
   }  
   return(next.rows)
 }
 
 
 #' Internal
-PC.fn.mat.apply <- function(nextrows,nPCs,add.int=F)
+#' pm is 'preserve.median'
+PC.fn.mat.apply <- function(nextrows, nPCs, add.int=F, pm=FALSE)
 {
   # matrix version of PC.fn (used to PC-correct one SNP at a time), vectorized version
   # testing shows the for-loop (non-vectorized) to be slightly faster, maybe because of t()
   # when using PC.fn.2 must pass in vec of 1's if you want the intecept
-  col.sel <- 1:ncol(nextrows)
-  nextrows <- t(apply(nextrows,1,PC.fn.2,nPCs=nPCs,col.sel=col.sel,add.int=add.int))
+  nc <- ncol(nextrows); if(nc<1) { warning("nextrows had less than 1 column"); return(rep(0,length(nextrows))) }
+  col.sel <- 1:nc
+  nextrows <- t(apply(nextrows,1,PC.fn.2,nPCs=nPCs,col.sel=col.sel,add.int=add.int,pm=pm))
   return(nextrows)
 }
 
 
 #' Internal
-PC.fn.mat.multi <- function(nextrows,nPCs,mc.cores=1,add.int=F)
+PC.fn.mat.multi <- function(nextrows, nPCs, mc.cores=1, add.int=F, pm=FALSE)
 {
   # matrix version of PC.fn (used to PC-correct one SNP at a time), vectorized version
   # testing shows the for-loop (non-vectorized) to be slightly faster, maybe because of t()
   # when using PC.fn.2 must pass in vec of 1's if you want the intecept
+  #mc.cores <- 2
   col.sel <- 1:ncol(nextrows)
   nextrows <- lapply(seq_len(nrow(nextrows)), function(i) nextrows[i,]) # multi slows this down
   #nextrows <- multicore::mclapply(nextrows,PC.fn,nPCs=nPCs,col.sel=col.sel,mc.cores=mc.cores)
-  nextrows <- parallel::mclapply(nextrows,PC.fn.2,nPCs=nPCs,col.sel=col.sel,mc.cores=mc.cores, add.int=add.int)
+ # cat("~")
+ # save(nextrows,nPCs,col.sel,mc.cores,add.int,pm,file="TESTOPOO.RData"); stop()
+  nextrows <- parallel::mclapply(nextrows,PC.fn.2,nPCs=nPCs,col.sel=col.sel,mc.cores=mc.cores, add.int=add.int, pm=pm)
+ # cat("+")
   nextrows <- do.call("rbind",nextrows)
+ # cat("`")
   return(nextrows)
 }
 
 
 #' Internal
-PC.fn <- function(next.row,nPCs,col.sel,add.int=F)
+PC.fn.previous <- function(next.row, nPCs, col.sel, add.int=F)
 {
   # apply PC correction for a single SNP, allowing for missing data.
   bad1 <- which(is.na(next.row))
   if(length(bad1)>0) { sel <- -bad1 } else { sel <- col.sel }
-  if(add.int) { int <- mean(next.row[sel]) } else { int <- 0 }
+  if(add.int) {  int <- mean(next.row[sel]) } else { int <- 0 }
   next.row[sel] <- lm(next.row ~ nPCs,na.action="na.exclude")$residuals + int
+  return(next.row)
+}
+
+PC.fn <- function(next.row, nPCs, col.sel, add.int=F, pm=FALSE)
+{
+  # apply PC correction for a single SNP, allowing for missing data.
+  bad1 <- which(is.na(next.row))
+  if(length(bad1)>0) { sel <- -bad1 } else { sel <- col.sel }
+  if(add.int) { 
+    if(pm) { 
+      int <- median(next.row[sel])
+      next.row[sel] <- lm(next.row ~ nPCs,na.action="na.exclude")$residuals
+      next.row[sel] <- next.row[sel] - median(next.row[sel]) + int
+    } else { 
+      int <- mean(next.row[sel]) 
+      next.row[sel] <- lm(next.row ~ nPCs,na.action="na.exclude")$residuals + int
+    }
+  } else { 
+    next.row[sel] <- lm(next.row ~ nPCs,na.action="na.exclude")$residuals
+  }
   return(next.row)
 }
 
 
 #' Internal
-PC.fn.2 <- function(next.row,nPCs,col.sel, add.int=F)
+PC.fn.2 <- function(next.row, nPCs, col.sel, add.int=F, pm=FALSE)
+{
+  # apply PC correction for a single SNP, allowing for missing data.
+  # when using PC.fn.2 must pass in vec of 1's if you want the intecept
+  bad1 <- which(is.na(next.row))
+  if(length(bad1)>0) { sel <- -bad1 } else { sel <- col.sel }
+  if(add.int) { 
+    if(pm) { 
+      int <- median(next.row[sel])
+      next.row[sel] <- lm.fit(x=nPCs[sel,],y=next.row[sel])$residuals
+      next.row[sel] <- next.row[sel] - median(next.row[sel]) + int
+    } else { 
+      int <- mean(next.row[sel]) 
+      next.row[sel] <- lm.fit(x=nPCs[sel,],y=next.row[sel])$residuals + int
+    }
+  } else { 
+    #prv(nPCs[sel,],next.row[sel])
+    next.row[sel] <- stats::lm.fit(x=nPCs[sel,],y=next.row[sel])$residuals
+    #next.row[sel] <- stats::lm.fit(x=sel*2,y=sel+rnorm(length(sel)))$residuals
+    #next.row[sel] <- rep(1,length(sel))
+  }
+  return(next.row)
+}
+
+
+#' Internal
+PC.fn.2.previous <- function(next.row, nPCs, col.sel, add.int=F, pm=FALSE)
 {
   # apply PC correction for a single SNP, allowing for missing data.
   # when using PC.fn.2 must pass in vec of 1's if you want the intecept

@@ -3,7 +3,7 @@
 \alias{bigpca}
 \docType{package}
 \title{
-PCA, transpose and multicore functionality for big.matrix objects
+PCA, Transpose and Multicore Functionality for 'big.matrix' Objects
 }
 \description{
 This package adds wrappers to add functionality for big.matrix objects 
@@ -16,8 +16,8 @@ This package adds wrappers to add functionality for big.matrix objects
 \tabular{ll}{
 Package: \tab bigpca\cr
 Type: \tab Package\cr
-Version: \tab 1.0\cr
-Date: \tab 2014-02-25\cr
+Version: \tab 1.0.3\cr
+Date: \tab 2015-11-07\cr
 License: \tab GPL (>= 2)\cr
 }
 The bigmemory project has provided a useful new data structure 'big.matrix', which allows
@@ -31,7 +31,7 @@ There are several functions dedicated to PCA/SVD. These operations still require
 matrices than would be feasible otherwise. There are also functions for determining the 'elbow' of the data,
  making scree plots, estimating variance explained for incomplete sets of eigenvalues, and for using the derived principle components for correction of a dataset. The PC correction algorithm is fast and can be run with 
 multiple cores simultaneously.
-There is also a new function print.big.matrix() for compactly previewing large matrices, and get.big.matrix() for
+There is also a new function prv.big.matrix() for compactly previewing large matrices, and get.big.matrix() for
 flexibly retrieving a big.matrix object from a range of different formats.
 
 List of key functions:

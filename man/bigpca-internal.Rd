@@ -3,6 +3,8 @@
 \alias{manage.test.files}
 \alias{PC.fn.2}
 \alias{PC.fn}
+\alias{PC.fn.2.previous}
+\alias{PC.fn.previous}
 \alias{PC.fn.mat.multi}
 \alias{PC.fn.mat.apply}
 \alias{PC.fn.mat}
@@ -23,4 +25,3 @@
   These are not recommended/needed to be called by the user 
 }
 \keyword{ internal }
-
