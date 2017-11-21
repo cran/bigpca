@@ -16,8 +16,8 @@ This package adds wrappers to add functionality for big.matrix objects
 \tabular{ll}{
 Package: \tab bigpca\cr
 Type: \tab Package\cr
-Version: \tab 1.0.3\cr
-Date: \tab 2015-11-07\cr
+Version: \tab 1.1\cr
+Date: \tab 2017-11-17\cr
 License: \tab GPL (>= 2)\cr
 }
 The bigmemory project has provided a useful new data structure 'big.matrix', which allows
@@ -62,7 +62,7 @@ List of key functions:
 Nicholas Cooper
 
 Maintainer: 
-Nicholas Cooper <nick.cooper@cimr.cam.ac.uk>
+Nicholas Cooper <njcooper@gmx.co.uk>
 }
 \keyword{ package }
 \keyword{ manip }
@@ -74,6 +74,7 @@ Nicholas Cooper <nick.cooper@cimr.cam.ac.uk>
 }
 \examples{
 #' # create a test big.matrix object (file-backed)
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
 #' bM <- filebacked.big.matrix(20, 50,
 #'        dimnames = list(paste("r",1:20,sep=""), paste("c",1:50,sep="")),
 #'        backingfile = "test.bck",  backingpath = getwd(), descriptorfile = "test.dsc")
@@ -92,4 +93,9 @@ Nicholas Cooper <nick.cooper@cimr.cam.ac.uk>
 #' corrected <- PC.correct(result2,bmat)
 #' corrected2 <- PC.correct(result2,bmat,n.cores=5)
 #' all.equal(corrected,corrected2)
+#' rm(tbM); rm(bM);rm(result); 
+#' rm(corrected);rm(corrected2); rm(bmat)
+#' clear_active_bms() # delete big.matrix objects in memory
+#' unlink(c("test.bck","test.dsc"))
+#' setwd(orig.dir)
 }

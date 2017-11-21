@@ -40,6 +40,45 @@ manage.test.files <- function(start=TRUE,keepers=NULL) {
 
 
 
+#' Function to clear big.matrix objects in the calling environment
+#' 
+#' New big.memory behavious prevents overwriting of previous big.matrix
+#' backing files, and in particular for windows you can only delete the 
+#' backing file if the object is also deleted. This finds any big.matrix
+#' objects in memory and deletes them (by default only with names in the
+#' 'culprits' list)
+#'
+#' @param ignore.os delete big.matrix objects even if the OS is not windows
+#' @param verbose report the names of deleted matrices
+#' @param only.culprits delete only matrices named: "bM","bM2","bmat","bmat2","tbM","sel","lmat"
+#' @param list.only just list active big.matrix objects rather than delete them
+#' @return No return value, but effect is to delete the big.matrix objects in the calling env.
+#' @seealso
+#' @export
+#' @examples
+#' clear_active_bms(ignore.os=TRUE, only.culprits=FALSE, list.only=TRUE) # list those in memory
+clear_active_bms <- function(ignore.os=FALSE, verbose=TRUE, only.culprits=TRUE, list.only=FALSE) {
+	culprits <- c("bM","bM2","bmat","bmat2","tbM","sel","lmat")
+	target.env <- parent.env(environment())
+	list.out <- NULL
+	if(.Platform$OS.type=="windows" | ignore.os) {
+		ll <- ls(name= target.env)
+		for (cc in 1:length(ll)) {
+			if((do.call("is", args=list(get(ll[cc]))))[1]=="big.matrix") { 
+				if(ll[cc] %in% culprits | !only.culprits) {
+					if(list.only) {
+						list.out <- c(list.out,ll[cc])
+					} else {
+						if(verbose) { message("removing big.matrix: ",ll[cc]) }
+						do.call("rm",args=list(ll[cc], envir= target.env)) 
+					}
+				}
+			} 
+		}
+	}
+	if(list.only) { return(list.out) }
+}
+
 
 #' Tidier display function for big matrix objects
 #' 
@@ -67,13 +106,17 @@ manage.test.files <- function(start=TRUE,keepers=NULL) {
 #' @seealso \code{\link{get.big.matrix}}
 #' @export
 #' @examples 
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
+#' if(file.exists("test.bck")) { unlink(c("test.bck","test.dsc")) }
 #' bM <- filebacked.big.matrix(20, 50,
 #'        dimnames = list(paste("r",1:20,sep=""), paste("c",1:50,sep="")),
 #'        backingfile = "test.bck",  backingpath = getwd(), descriptorfile = "test.dsc")
 #' bM[1:20,] <- replicate(50,rnorm(20))
 #' prv.big.matrix(bM)
 #' prv.big.matrix(bM,rows=10,cols=4)
+#' rm(bM) 
 #' unlink(c("test.dsc","test.bck"))  # clean up files
+#' setwd(orig.dir)
 prv.big.matrix <- function(bigMat,dir="",rows=3,cols=2,name=NULL,dat=TRUE,
                            descr=NULL,bck=NULL,mem=FALSE,rcap="",ccap="",...) {
   # print summary of big matrix contents
@@ -466,10 +509,12 @@ quick.elbow <- function(varpc,low=.08,max.pc=.9) {
 #'  of length nrow(bigMat), or if MARGIN=2 a vector of length ncol(bigMat).
 #' @export
 #' @examples
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
+#' if(file.exists("test.bck")) { unlink(c("test.bck","test.dsc")) }
 #' # set up a toy example of a big.matrix (functions most relevant when matrix is huge)
 #' bM <- filebacked.big.matrix(20, 50,
 #'        dimnames = list(paste("r",1:20,sep=""), paste("c",1:50,sep="")),
-#'        backingfile = "test.bck",  backingpath = getwd(), descriptorfile = "test.dsc")
+#'        backingfile = "test9.bck",  backingpath = getwd(), descriptorfile = "test9.dsc")
 #' bM[1:20,] <- replicate(50,rnorm(20))
 #' prv.big.matrix(bM)
 #' # compare native bigmemory column-wise function to multicore [native probably faster]
@@ -494,7 +539,9 @@ quick.elbow <- function(varpc,low=.08,max.pc=.9) {
 #' M <- matrix(runif(10^test.size),ncol=10^(test.size-2)) # normal matrix
 #' system.time(bmcapply(M,2,sd,n.cores=2)) # use up to 2 cores if available
 #' system.time(apply(M,2,sd)) # 
-#' unlink(c("test.bck","test.dsc"))
+#' rm(bM) 
+#' unlink(c("test9.bck","test9.dsc"))
+#' setwd(orig.dir)
 bmcapply <- function(bigMat,MARGIN,FUN,dir=NULL,by=200,n.cores=1,
                      use.apply=TRUE,convert=!use.apply,combine.fn=NULL,...) {
   # multicore way of calculating a function (e.g, dlrs) for a big.matrix,
@@ -506,6 +553,7 @@ bmcapply <- function(bigMat,MARGIN,FUN,dir=NULL,by=200,n.cores=1,
   if(!as.numeric(MARGIN)[1] %in% c(1,2)) { stop("MARGIN must be 1=rows, or 2=columns") }
   if(!is.function(FUN)) { stop("FUN must be a function") }
   if(!is.numeric(by)) { by <- 200 } else { by <- round(by) }
+  if(n.cores>1 & .Platform$OS.type=="windows") { n.cores <- 1; warning("setting n.cores to 1 because mc.cores is not supported by windows") }
   bycol <- as.logical(as.numeric(MARGIN[1])-1)
   #must.use.package("multicore")
   if(is.null(dim(bigMat))) { stop("this function only works on matrix objects") }
@@ -643,7 +691,7 @@ choose.comb.fn <- function(result.list,stepz) {
 #'  else it will return instructions on what to do to fix the issue 
 #' @export
 #' @examples
-#' # not run # svn.bigalgebra.install(TRUE)
+#' \donttest{ svn.bigalgebra.install(TRUE) }
 svn.bigalgebra.install <- function(verbose=FALSE) {
   # this is a major hack to install bigalgebra from SVN,
   # manually modifying the DESCRIPTION file to depend and link to 'BH'
@@ -722,7 +770,7 @@ svn.bigalgebra.install <- function(verbose=FALSE) {
 #'  else will return instructions on what to do next to fix the issue 
 #' @export
 #' @examples 
-#' # not run # big.algebra.install.help(TRUE)
+#' \donttest{ big.algebra.install.help(TRUE) }
 big.algebra.install.help <- function(verbose=FALSE) {
   ## bigalgebra package doesn't install easily using the regular R way of installing packages
   # here try a simple way that might work, and if not, provide links and instructions to 
@@ -768,6 +816,8 @@ big.algebra.install.help <- function(verbose=FALSE) {
 #' @export
 #' @examples 
 #' # set up a toy example of a big.matrix 
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
+#' if(file.exists("test.bck")) { unlink(c("test.bck","test.dsc")) }
 #' bM <- filebacked.big.matrix(20, 50,
 #'        dimnames = list(paste("r",1:20,sep=""), paste("c",1:50,sep="")),
 #'        backingfile = "test.bck",  backingpath = getwd(), descriptorfile = "test.dsc")
@@ -784,7 +834,9 @@ big.algebra.install.help <- function(verbose=FALSE) {
 #' prv.big.matrix(bM2)
 #' prv.big.matrix(bM3)
 #' prv.big.matrix(bM4)
+#' rm(bM) 
 #' unlink(c("fn.RData","test.bck","test.dsc"))
+#' setwd(orig.dir)
 get.big.matrix <- function(fn,dir="",verbose=FALSE)
 {
   # loads a big.matrix either using an big.matrix description object
@@ -1051,7 +1103,8 @@ generate.test.matrix <- function(size=5,row.exp=2,rand=rnorm,dimnames=TRUE,
   }
   if(big.matrix) {
     if(is.character(file.name)) {
-      if(!is.big.matrix(M)) { M <- as.big.matrix(M,descriptorfile=descr,backingfile=bck) }
+      if(dirname(file.name)!=".") { pth <- dirname(file.name); file.name <- basename(file.name) } else { pth <- getwd() }
+      if(!is.big.matrix(M)) { M <- as.big.matrix(M,descriptorfile=descr,backingfile=bck,  backingpath = pth) }
       return(list(M=M,descr=descr,bck=bck))
     } else {
       return(as.big.matrix(M))
@@ -1171,28 +1224,28 @@ dir.force.slash <- function(dir) {
 #' #1. import without specifying row/column names
 #' ii <- import.big.data(in.fn); prv.big.matrix(ii) # SLOWER without dimnames!
 #' #2. import using row/col names from file
-#' ii <- import.big.data(in.fn,cols.fn="colnames.txt",rows.fn="rownames.txt")
+#' ii <- import.big.data(in.fn,cols.fn="colnames.txt",rows.fn="rownames.txt", pref="p1")
 #' prv.big.matrix(ii)
 #' #3. import by passing colnames/rownames as objects
-#' ii <- import.big.data(in.fn, col.names=coln,row.names=rown)
+#' ii <- import.big.data(in.fn, col.names=coln,row.names=rown, pref="p2")
 #' prv.big.matrix(ii)
 #' 
 #' ### IMPORTING SIMPLE 1 FILE MATRIX WITH DIMNAMES ##
 #' #1. import without specifying row/column names, but they ARE in the file
 #' in.fn <- "functestdn.txt"
-#' ii <- import.big.data(in.fn); prv.big.matrix(ii)
+#' ii <- import.big.data(in.fn, pref="p3"); prv.big.matrix(ii)
 #' 
 #' ### IMPORTING SIMPLE 1 FILE MATRIX WITH MISORDERED rownames ##
 #' rown2 <- rown; rown <- sample(rown);
 #' # re-run test3 using in.fn with dimnames
-#' ii <- import.big.data(in.fn, col.names=coln,row.names=rown)
+#' ii <- import.big.data(in.fn, col.names=coln,row.names=rown, pref="p4")
 #' prv.big.matrix(ii)
 #' # restore rownames: 
 #' rown <- rown2
 #' 
 #' ### IMPORTING SIMPLE 1 FILE LONG FORMAT by columns ##
 #' in.fn <- "funclongcol.txt"; #rerun test 2 # 
-#' ii <- import.big.data(in.fn,cols.fn="colnames.txt",rows.fn="rownames.txt")
+#' ii <- import.big.data(in.fn,cols.fn="colnames.txt",rows.fn="rownames.txt", pref="p5")
 #' prv.big.matrix(ii)
 #' 
 #' ### IMPORTING multifile LONG by cols ##
@@ -1211,7 +1264,7 @@ dir.force.slash <- function(dir) {
 #'   writeLines(paste(as.vector((Ms2[[cc]]))),con=infs[cc]) }
 #'   
 #' # Now test the import using colnames and rownames lists
-#' ii <- import.big.data(infs, col.names=colnL,row.names=rown)
+#' ii <- import.big.data(infs, col.names=colnL,row.names=rown, pref="p6")
 #' prv.big.matrix(ii)
 #' 
 #' ### IMPORTING multifile MATRIX by rows ##
@@ -1229,7 +1282,7 @@ dir.force.slash <- function(dir) {
 #'  write.table(Ms[[cc]],sep="\t",col.names=FALSE,row.names=FALSE,file=infs[cc],quote=FALSE) }
 #'  
 #' # Now test the import using colnames and rownames files
-#' ii <- import.big.data(infs, col.names="colnames.txt",rows.fn=rowfs)
+#' ii <- import.big.data(infs, col.names="colnames.txt",rows.fn=rowfs, pref="p7")
 #' prv.big.matrix(ii)
 #' 
 #' # DELETE ALL FILES ##
@@ -1237,7 +1290,7 @@ dir.force.slash <- function(dir) {
 #' ## many files to clean up! ##
 #' unlink(c("funclongcol.bck","funclongcol.dsc","functest.bck","functest.dsc",
 #'  "functestdn.RData","functestdn.bck","functestdn.dsc","functestdn_file_rowname_list_check_this.txt",
-#'  "split1.bck","split1.dsc","splitmatR1.bck","splitmatR1.dsc"))
+#'  "split1.bck","split1.dsc","splitmatR1.bck","splitmatR1.dsc", paste0("p",2:7)))
 #' setwd(orig.dir) # reset working dir to original
 import.big.data <- function(input.fn=NULL, dir=getwd(), long=FALSE, rows.fn=NULL, cols.fn=NULL, 
                               pref="", delete.existing=TRUE, ret.obj=FALSE, verbose=TRUE, row.names=NULL, col.names=NULL,
@@ -1472,23 +1525,24 @@ import.big.data <- function(input.fn=NULL, dir=getwd(), long=FALSE, rows.fn=NULL
           if(frm$match) {
             lbl <- next.row[1]; 
             row.sel <- match(lbl,cmb.row.list)
-            bigVar[row.sel,nxt.rng] <- next.row[-1]
+            bigVar[row.sel,nxt.rng] <- as(next.row[-1], as.type)
             file.rn[row.sel] <- lbl
           } else {
             if(col.mode) {
               #prv("bigVar",counts=list(cc=cc,nxt.rng=nxt.rng[1]))
               #prv(c("next.row","nxt.rng"))
-              file.rn[cc] <- next.row[1]; bigVar[cc,nxt.rng] <- next.row[-1]
+              file.rn[cc] <- next.row[1]; bigVar[cc,nxt.rng] <- as(next.row[-1], as.type)
             } else {
               selc <- 1:(length(next.row)-1)
-              file.rn[nxt.rng[cc]] <- next.row[1]; bigVar[nxt.rng[cc],selc] <- next.row[-1]
+              file.rn[nxt.rng[cc]] <- next.row[1]; bigVar[nxt.rng[cc],selc] <- as(next.row[-1],as.type)
             }
           }
         } else {
           if(col.mode) {
-            bigVar[cc,nxt.rng] <- next.row
+            bigVar[cc,nxt.rng] <- as(next.row,as.type)
           } else {
-            bigVar[nxt.rng[cc],] <- next.row
+          	prv(bigVar,nxt.rng,cc,next.row)
+            bigVar[nxt.rng[cc],] <- as(next.row,as.type)
           }
         }
       }
@@ -1695,25 +1749,29 @@ select.col.row.custom <- function(bigMat,row,col,verbose=T)
 #' \code{\link{select.least.assoc}}, \code{\link{big.select}}, \code{\link{get.big.matrix}}
 #' @author Nicholas Cooper 
 #' @examples 
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
+#' if(file.exists("thin.bck")) { unlink(c("thin.bck","thin.dsc")) }
 #' bmat <- generate.test.matrix(5,big.matrix=TRUE)
 #' prv.big.matrix(bmat)
 #' # make 5% random selection:
-#' lmat <- thin(bmat)
+#' lmat <- thin(bmat, pref="th2")
 #' prv.big.matrix(lmat)
 #' # make 10% most orthogonal selection (lowest correlations):
-#' lmat <- thin(bmat,.10,"cor",hi.cor=FALSE)
+#' lmat <- thin(bmat,.10,"cor",hi.cor=FALSE, pref="th3")
 #' prv.big.matrix(lmat)
 #' # make 10% most representative selection:
-#' lmat <- thin(bmat,.10,"PCA",ret.obj=FALSE) # return file name instead of object
+#' lmat <- thin(bmat,.10,"PCA",ret.obj=FALSE, pref="th4") # return file name instead of object
 #' print(lmat)
 #' prv.big.matrix(lmat)
 #' # make 25% selection most correlated to phenotype
 #' # create random phenotype variable
 #' pheno <- rep(1,ncol(bmat)); pheno[which(runif(ncol(bmat))<.5)] <- 2
-#' lmat <- thin(bmat,.25,"assoc",phenotype=pheno,least=FALSE,verbose=TRUE)
+#' lmat <- thin(bmat,.25,"assoc",phenotype=pheno,least=FALSE,verbose=TRUE, pref="th5")
 #' prv.big.matrix(lmat)
 #' # tidy up temporary files:
-#' unlink(c("thin.bck","thin.dsc","thin.RData"))
+#' rm(lmat) 
+#' unlink(c("thin.bck","thin.dsc","thin.RData",paste0("th",2:5)))
+#' setwd(orig.dir)
 thin <- function(bigMat,keep=0.05,how=c("uniform","correlation","pca","association"),
                  dir="",rows=TRUE,random=TRUE,hi.cor=TRUE,least=TRUE,
                  pref="thin",verbose=FALSE,ret.obj=TRUE,...) {
@@ -1786,16 +1844,20 @@ thin <- function(bigMat,keep=0.05,how=c("uniform","correlation","pca","associati
 #' @author Nicholas Cooper 
 #' @examples 
 #' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
+#' if(file.exists("sel.bck")) { unlink(c("sel.bck","sel.dsc")) }
 #' bmat <- generate.test.matrix(5,big.matrix=TRUE)
 #' # take a subset of the big.matrix without using deepcopy
-#' sel <- big.select(bmat,c(1,2,8),c(2:10),deepC=FALSE,verbose=TRUE)
+#' sel <- big.select(bmat,c(1,2,8),c(2:10),
+#'  deepC=FALSE,verbose=TRUE, delete.existing=TRUE)
 #' prv.big.matrix(sel)
 #' # now select the same subset using row/column names from text files
 #' writeLines(rownames(bmat)[c(1,2,8)],con="bigrowstemp.txt")
 #' writeLines(colnames(bmat)[c(2:10)],con="bigcolstemp.txt")
-#' sel <- big.select(bmat, "bigrowstemp.txt","bigcolstemp.txt", delete.existing=TRUE)
+#' sel <- big.select(bmat, "bigrowstemp.txt","bigcolstemp.txt", delete.existing=TRUE, pref="sel2")
 #' prv.big.matrix(sel)
-#' unlink(c("bigcolstemp.txt","bigrowstemp.txt","sel.RData","sel.bck","sel.dsc"))
+#' rm(bmat)
+#' rm(sel)  
+#' unlink(c("bigcolstemp.txt","bigrowstemp.txt","sel.RData","sel2.bck","sel2.dsc"))
 #' setwd(orig.dir) # reset working dir to original
 big.select <- function(bigMat, select.rows=NULL, select.cols=NULL, dir=getwd(), 
                        deepC=TRUE, pref="sel", delete.existing=FALSE, verbose=FALSE)
@@ -2137,7 +2199,7 @@ uniform.select <- function(bigMat,keep=.05,rows=TRUE,dir="",random=TRUE,ram.gb=0
     new.n <- round(max(0,min(1,keep))*N)
   }
   if(!random) {
-    X <- cut.fac(N,new.n); 
+    X <- cut_fac(N,new.n); 
     indx <- tapply(1:N,X,function(x) { round(median(x)) })
     indx <- as.integer(indx)
     # select a randomly uniform subset
@@ -2367,7 +2429,7 @@ select.least.assoc <- function(bigMat,keep=.05,phenotype=NULL,least=TRUE,dir="",
 
 
 # internal function
-cut.fac <- function(N,n.grps,start.zero=FALSE,factor=TRUE) {
+cut_fac <- function(N,n.grps,start.zero=FALSE,factor=TRUE) {
   X <- findInterval(((1:N)/(N/n.grps)), 1:n.grps, all.inside=F, rightmost.closed=T)+as.numeric(!start.zero)
   #X <- cut(1:N,n.grps,labels=F)
   if(factor) { X <- as.factor(X) }
@@ -2440,7 +2502,7 @@ cut.fac <- function(N,n.grps,start.zero=FALSE,factor=TRUE) {
 #'  is not currently available on CRAN, but only SVN and RForge. See svn.bigalgebra.install() or big.algebra.install.help()
 #'  Default is to use bigalgebra if available (TRUE), but setting this FALSE prevents the check for bigalgebra which would be
 #'  cleaner if you know that you don't have it installed.
-#' @param ... if thin is TRUE, then these should be any additional arguments for thin(), e.g, 'keep', 'how', etc.i
+#' @param ... if thin is TRUE, then these should be any additional arguments for thin(), e.g, 'pref', 'keep', 'how', etc.i
 #' @param delete.existing logical, whether to automatically delete filebacked matrices (if they exist) 
 #' before rewriting. This is because of an update since 20th October 2015 where bigmemory won't allow
 #' overwrite of an existing filebacked matrix. If you wish to set this always TRUE or FALSE, use
@@ -2484,26 +2546,31 @@ cut.fac <- function(N,n.grps,start.zero=FALSE,factor=TRUE) {
 #' cor(pr$sdev,D) # the singular values are equivalent to the eigenvalues
 #' 
 #' ## MAIN EXAMPLES ##
-#' bmat <- as.big.matrix(mat,backingfile="testMyBig.bck",descriptorfile="testMyBig.dsc")
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
+#' if(file.exists("testMyBig.bck")) { unlink(c("testMyBig.bck","testMyBig.dsc")) }
+#' bmat <- as.big.matrix(mat,backingfile="testMyBig.bck",
+#'  descriptorfile="testMyBig.dsc",  backingpath = getwd())
 #' result <- big.PCA(bmat) #,verbose=TRUE)
 #' headl(result)
 #' # plot the eigenvalues with a linear fit line and elbow placed at 13
 #' Eigv <- pca.scree.plot(result$Evalues,M=bmat,elbow=6,printvar=FALSE)
+#' rm(bmat) 
 #' unlink(c("testMyBig.bck","testMyBig.dsc"))
 #' ##  generate some data with reasonable intercorrelations ##
 #' mat2 <- sim.cor(500,200,genr=function(n){ (runif(n)/2+.5) })
-#' bmat2 <- as.big.matrix(mat2,backingfile="testMyBig.bck",descriptorfile="testMyBig.dsc")
+#' bmat2 <- as.big.matrix(mat2,backingfile="testMyBig2.bck",
+#'  descriptorfile="testMyBig2.dsc",  backingpath = getwd())
 #' # calculate PCA on decreasing subset size 
 #' result2 <- big.PCA(bmat2,thin=FALSE)
-#' result3 <- big.PCA(bmat2,thin=TRUE,keep=.5)
-#' result4 <- big.PCA(bmat2,thin=TRUE,keep=.5,how="cor")
-#' result5 <- big.PCA(bmat2,thin=TRUE,keep=.5,how="pca")
-#' result6 <- big.PCA(bmat2,thin=TRUE,keep=.2)
-#' normal <- result2$PCs
-#' thinned <- result3$PCs
-#' corred <- result4$PCs
-#' pced <- result5$PCs
-#' thinner <- result6$PCs
+#' normal <- result2$PCs; rm(result2)
+#' result3 <- big.PCA(bmat2,thin=TRUE,keep=.5, pref="t1")
+#' thinned <- result3$PCs; rm(result3)
+#' result4 <- big.PCA(bmat2,thin=TRUE,keep=.5, pref="t2", how="cor")
+#' corred <- result4$PCs; rm(result4)
+#' result5 <- big.PCA(bmat2,thin=TRUE,keep=.5, pref="t3", how="pca")
+#' pced <- result5$PCs; rm(result5)
+#' result6 <- big.PCA(bmat2,thin=TRUE,keep=.2, pref="t4")
+#' thinner <- result6$PCs; rm(result6)
 #' ## correlate the resulting PCs with the un-thinned PCs
 #' cors.thin.with.orig <- apply(cor(normal,thinned),1,max)
 #' cors.corred.with.orig <- apply(cor(normal,corred),1,max)
@@ -2515,7 +2582,9 @@ cut.fac <- function(N,n.grps,start.zero=FALSE,factor=TRUE) {
 #' lines(cors.pced.with.orig,col="lightgreen")
 #' # can see that the first component is highly preserved,
 #' # and next components, somewhat preserved; try using different thinning methods
-#' unlink(c("testMyBig.bck","testMyBig.dsc"))
+#' rm(bmat2) 
+#' unlink(c("testMyBig2.bck","testMyBig2.dsc"))
+#' setwd(orig.dir)
 big.PCA <- function(bigMat,dir=getwd(),pcs.to.keep=50,thin=FALSE,SVD=TRUE,LAP=FALSE,center=TRUE,
                     save.pcs=FALSE,use.bigalgebra=TRUE,pcs.fn="PCsEVsFromPCA.RData",
                     return.loadings=FALSE,verbose=FALSE,delete.existing=getOption("deleteFileBacked"),...) 
@@ -2702,14 +2771,17 @@ big.PCA <- function(bigMat,dir=getwd(),pcs.to.keep=50,thin=FALSE,SVD=TRUE,LAP=FA
 #' @author Nicholas Cooper 
 #' @examples 
 #' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
+#' if(file.exists("testMyBig.bck")) { unlink(c("testMyBig.bck","testMyBig.dsc")) }
 #' mat2 <- sim.cor(500,200,genr=function(n){ (runif(n)/2+.5) })
-#' bmat2 <- as.big.matrix(mat2,backingfile="testMyBig.bck",descriptorfile="testMyBig.dsc")
+#' bmat2 <- as.big.matrix(mat2,backingfile="testMyBig.bck",
+#'  descriptorfile="testMyBig.dsc",  backingpath = getwd())
 #' ## calculate PCA ##
-#' # result2 <- big.PCA(bmat2,thin=FALSE)
-#' # corrected <- PC.correct(result2,bmat2)
-#' # corrected2 <- PC.correct(result2,bmat2,n.cores=2)
-#' # c1 <- get.big.matrix(corrected) ; c2 <- get.big.matrix(corrected2)
-#' # all.equal(as.matrix(c1),as.matrix(c2))
+#' \donttest{ result2 <- big.PCA(bmat2,thin=FALSE)
+#' corrected <- PC.correct(result2,bmat2)
+#' corrected2 <- PC.correct(result2,bmat2,n.cores=2)
+#' c1 <- get.big.matrix(corrected) ; c2 <- get.big.matrix(corrected2)
+#' all.equal(as.matrix(c1),as.matrix(c2)) }
+#' rm(bmat2) 
 #' unlink(c("testMyBig.bck","testMyBig.dsc"))
 #' setwd(orig.dir) # reset working dir to original
 PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="corrected",
@@ -2909,6 +2981,8 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
 #' @return A big.matrix that is the transpose (rows and columns switched) of the original matrix
 #' @export
 #' @examples 
+#' orig.dir <- getwd(); setwd(tempdir()); # move to temporary dir
+#' if(file.exists("test.bck")) { unlink(c("test.bck","test.dsc")) }
 #' bM <- filebacked.big.matrix(200, 500,
 #'        dimnames = list(paste("r",1:200,sep=""), paste("c",1:500,sep="")),
 #'        backingfile = "test.bck",  backingpath = getwd(), descriptorfile = "test.dsc")
@@ -2916,7 +2990,10 @@ PC.correct <- function(pca.result,bigMat,dir=getwd(),num.pcs=9,n.cores=1,pref="c
 #' prv.big.matrix(bM)
 #' tbM <- big.t(bM,verbose=TRUE)
 #' prv.big.matrix(tbM)
+#' rm(tbM)
+#' rm(bM)  
 #' unlink(c("t.bigMat.RData","t.bigMat.bck","t.bigMat.dsc","test.bck","test.dsc"))
+#' setwd(orig.dir)
 big.t <- function(bigMat,dir=NULL,name="t.bigMat",R.descr=NULL,max.gb=NA,
                   verbose=F,tracker=NA,file.ok=T,delete.existing=getOption("deleteFileBacked")) {
   #this can be slow!

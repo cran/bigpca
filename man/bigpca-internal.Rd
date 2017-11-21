@@ -8,7 +8,7 @@
 \alias{PC.fn.mat.multi}
 \alias{PC.fn.mat.apply}
 \alias{PC.fn.mat}
-\alias{cut.fac}
+\alias{cut_fac}
 \alias{row.rep}
 \alias{dir.force.slash}
 \alias{check.text.matrix.format}
